@@ -51,11 +51,18 @@ class PianoKeyboard extends StatelessWidget {
     'sounds/piano_B3.wav': LogicalKeyboardKey.keyM,
     'sounds/piano_C4.wav': LogicalKeyboardKey.comma,
   }.entries.toList();
+  var volume = 1;
+  var decay = 200;
 
   initialize() {
     for (int i = 0; i < notes.length; i++) {
       players.add(AudioPlayer());
-      timers.add(null);
+      timers.add(
+        CountdownTimer(
+          Duration(milliseconds: decay),
+          const Duration(milliseconds: 50),
+        ),
+      );
       players[i].setSource(AssetSource(notes[i].key));
     }
   }
@@ -81,22 +88,28 @@ class PianoKeyboard extends StatelessWidget {
   void _playSound(int index) async {
     timers[index]?.cancel();
 
+    if (players[index].source == null) {
+      await players[index].setSource(AssetSource(notes[index].key));
+    }
     await players[index].seek(Duration(milliseconds: 0));
     await players[index].setVolume(1);
     //players[index].resume();
-    Future.delayed(Duration(milliseconds: 10), () {
-      print("setVolume: " + players[index].volume.toString());
-      players[index].getCurrentPosition().then(
-        (value) => (print(value?.inMilliseconds.toString())),
-      );
-      players[index].resume();
+    Future.delayed(Duration(milliseconds: 100), () {
+      // print("setVolume: " + players[index].volume.toString());
+      // players[index].getCurrentPosition().then(
+      //   (value) => (print(value?.inMilliseconds.toString())),
+      // );
+      print("Gonna resume");
+      if (players[index].volume >= 1) {
+        players[index].resume();
+      }
     });
   }
 
   void _stopSound(int index) async {
     /// Will fade out over 3 seconds
     double startVolume = players[index].volume;
-    Duration duration = const Duration(milliseconds: 200);
+    Duration duration = Duration(milliseconds: decay);
 
     /// Using a [CountdownTimer] to decrement the volume every 50 milliseconds, then stop [AudioPlayer] when done.
     timers[index] = CountdownTimer(duration, const Duration(milliseconds: 50))
@@ -106,6 +119,7 @@ class PianoKeyboard extends StatelessWidget {
         players[index].setVolume(percent * startVolume);
       }).onDone(() async {
         await players[index].pause();
+        print("Finished timer");
         // if (players[index].state == PlayerState.paused) {
         //   Future.delayed(Duration(milliseconds: 10), () {
         //     players[index].setVolume(1);
@@ -114,7 +128,9 @@ class PianoKeyboard extends StatelessWidget {
         // }
       });
 
-    //timers[index] = null;
+    Future.delayed(duration, () {
+      timers[index] = null;
+    });
   }
 
   @override
