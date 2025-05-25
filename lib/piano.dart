@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flame/events.dart';
-import 'package:flame/game.dart';
 import 'package:flutter/services.dart';
 
 class Note {
@@ -19,56 +17,48 @@ class Note {
   }
 }
 
-class KeyboardInput extends FlameGame with KeyboardEvents {
-  //KeyboardInput({required this.playSound, required this.stopSound});
+class KeyboardInput {
+  const KeyboardInput({required this.playSound, required this.stopSound});
 
-  //final Function playSound;
-  //final Function stopSound;
+  final Function playSound;
+  final Function stopSound;
 
-  @override
-  Future<void> onLoad() async {
-    print("Loading player sprite...");
-  }
-
-  @override
-  KeyEventResult onKeyEvent(
-    KeyEvent event,
-    Set<LogicalKeyboardKey> keysPressed,
-  ) {
-    if (event is KeyDownEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.space) {
-        print("keyZDown");
-        //playSound(0);
-      }
-    } else if (event is KeyUpEvent) {
-      if (event.logicalKey == LogicalKeyboardKey.keyZ) {
-        //stopSound(0);
-      }
+  void handleInput(KeyEvent event) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.keyZ) {
+      playSound(0);
     }
-    return KeyEventResult.handled;
   }
 }
 
 class PianoKeyboard extends StatelessWidget {
   PianoKeyboard({super.key});
 
-  //late KeyboardInput input;
   final players = <AudioPlayer>[];
-  final sounds = <String>[
-    'sounds/piano_C3.wav',
-    'sounds/piano_C#3.wav',
-    'sounds/piano_D3.wav',
-    'sounds/piano_D#3.wav',
-    'sounds/piano_E3.wav',
-  ];
+  final notes = {
+    'sounds/piano_C3.wav': LogicalKeyboardKey.keyZ,
+    'sounds/piano_C#3.wav': LogicalKeyboardKey.keyS,
+    'sounds/piano_D3.wav': LogicalKeyboardKey.keyX,
+    'sounds/piano_D#3.wav': LogicalKeyboardKey.keyD,
+    'sounds/piano_E3.wav': LogicalKeyboardKey.keyC,
+  }.entries.toList();
 
   initialize() {
     for (int i = 0; i < 5; i++) {
       players.add(AudioPlayer());
-      players[i].setSource(AssetSource(sounds[i]));
+      players[i].setSource(AssetSource(notes[i].key));
     }
+  }
 
-    //input = KeyboardInput(playSound: _playSound, stopSound: _stopSound);
+  void handleInput(KeyEvent event) {
+    for (int i = 0; i < notes.length; i++) {
+      if (event.logicalKey == notes[i].value) {
+        if (event is KeyDownEvent) {
+          _playSound(i);
+        } else if (event is KeyUpEvent) {
+          _stopSound(i);
+        }
+      }
+    }
   }
 
   void _setVolume(double volume) {
@@ -88,11 +78,12 @@ class PianoKeyboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final FocusNode _focusNode = FocusNode();
     var theme = Theme.of(context);
 
     List<Widget> pianoKeys = [];
     for (var i = 0; i < 5; i++) {
-      String keyName = sounds[i].replaceAll("sounds/piano_", "");
+      String keyName = notes[i].key.replaceAll("sounds/piano_", "");
       keyName = keyName.replaceAll(".wav", "");
 
       var key = PianoKey(
@@ -103,11 +94,18 @@ class PianoKeyboard extends StatelessWidget {
       pianoKeys.add(key);
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(color: theme.colorScheme.primary),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: pianoKeys,
+    return KeyboardListener(
+      focusNode: _focusNode,
+      autofocus: true,
+      onKeyEvent: (event) {
+        handleInput(event);
+      },
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: theme.colorScheme.primary),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: pianoKeys,
+        ),
       ),
     );
   }
