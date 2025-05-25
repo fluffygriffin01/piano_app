@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/services.dart';
+import 'package:quiver/async.dart';
 
 class Note {
   Note({required this.index, required this.string});
@@ -34,17 +35,27 @@ class PianoKeyboard extends StatelessWidget {
   PianoKeyboard({super.key});
 
   final players = <AudioPlayer>[];
+  final timers = <CountdownTimer?>[];
   final notes = {
     'sounds/piano_C3.wav': LogicalKeyboardKey.keyZ,
     'sounds/piano_C#3.wav': LogicalKeyboardKey.keyS,
     'sounds/piano_D3.wav': LogicalKeyboardKey.keyX,
     'sounds/piano_D#3.wav': LogicalKeyboardKey.keyD,
     'sounds/piano_E3.wav': LogicalKeyboardKey.keyC,
+    'sounds/piano_F3.wav': LogicalKeyboardKey.keyV,
+    'sounds/piano_F#3.wav': LogicalKeyboardKey.keyG,
+    'sounds/piano_G3.wav': LogicalKeyboardKey.keyB,
+    'sounds/piano_G#3.wav': LogicalKeyboardKey.keyH,
+    'sounds/piano_A3.wav': LogicalKeyboardKey.keyN,
+    'sounds/piano_A#3.wav': LogicalKeyboardKey.keyJ,
+    'sounds/piano_B3.wav': LogicalKeyboardKey.keyM,
+    'sounds/piano_C4.wav': LogicalKeyboardKey.comma,
   }.entries.toList();
 
   initialize() {
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < notes.length; i++) {
       players.add(AudioPlayer());
+      timers.add(null);
       players[i].setSource(AssetSource(notes[i].key));
     }
   }
@@ -68,12 +79,42 @@ class PianoKeyboard extends StatelessWidget {
   }
 
   void _playSound(int index) async {
-    await players[index].seek(Duration(seconds: 0));
-    await players[index].resume();
+    timers[index]?.cancel();
+
+    await players[index].seek(Duration(milliseconds: 0));
+    await players[index].setVolume(1);
+    //players[index].resume();
+    Future.delayed(Duration(milliseconds: 10), () {
+      print("setVolume: " + players[index].volume.toString());
+      players[index].getCurrentPosition().then(
+        (value) => (print(value?.inMilliseconds.toString())),
+      );
+      players[index].resume();
+    });
   }
 
   void _stopSound(int index) async {
-    await players[index].pause();
+    /// Will fade out over 3 seconds
+    double startVolume = players[index].volume;
+    Duration duration = const Duration(milliseconds: 200);
+
+    /// Using a [CountdownTimer] to decrement the volume every 50 milliseconds, then stop [AudioPlayer] when done.
+    timers[index] = CountdownTimer(duration, const Duration(milliseconds: 50))
+      ..listen((event) {
+        final percent =
+            event.remaining.inMilliseconds / duration.inMilliseconds;
+        players[index].setVolume(percent * startVolume);
+      }).onDone(() async {
+        await players[index].pause();
+        // if (players[index].state == PlayerState.paused) {
+        //   Future.delayed(Duration(milliseconds: 10), () {
+        //     players[index].setVolume(1);
+        //     print("setVolume");
+        //   });
+        // }
+      });
+
+    //timers[index] = null;
   }
 
   @override
@@ -82,7 +123,7 @@ class PianoKeyboard extends StatelessWidget {
     var theme = Theme.of(context);
 
     List<Widget> pianoKeys = [];
-    for (var i = 0; i < 5; i++) {
+    for (var i = 0; i < notes.length; i++) {
       String keyName = notes[i].key.replaceAll("sounds/piano_", "");
       keyName = keyName.replaceAll(".wav", "");
 
@@ -126,9 +167,6 @@ class PianoKey extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
-    final style = theme.textTheme.displayMedium!.copyWith(
-      color: theme.colorScheme.onPrimary,
-    );
 
     // Black Note
     if (note.getString().contains('#')) {
