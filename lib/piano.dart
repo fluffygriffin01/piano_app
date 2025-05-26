@@ -5,7 +5,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:quiver/async.dart';
 import 'package:audio_session/audio_session.dart';
-import 'dart:math';
 
 class Note {
   Note({required this.index, required this.string});
@@ -39,7 +38,8 @@ class PianoKeyboard extends StatelessWidget {
   PianoKeyboard({super.key});
 
   final players = <AudioPlayer>[];
-  final timers = <CountdownTimer?>[];
+  final attackTimers = <CountdownTimer?>[];
+  final releaseTimers = <CountdownTimer?>[];
   final notes = {
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C3.wav':
         LogicalKeyboardKey.keyZ,
@@ -68,8 +68,11 @@ class PianoKeyboard extends StatelessWidget {
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C4.wav':
         LogicalKeyboardKey.comma,
   }.entries.toList();
+  final notesPlaying = <int>[];
   var volume = 1.0;
-  var decay = 600;
+  var attack = 500;
+  var decay = 300;
+  var releasedNoteRecently = false;
 
   initialize() async {
     final session = await AudioSession.instance;
@@ -83,24 +86,45 @@ class PianoKeyboard extends StatelessWidget {
         print("Error loading audio source: $e");
       }
 
-      timers.add(
+      attackTimers.add(
+        CountdownTimer(
+          Duration(milliseconds: attack),
+          const Duration(milliseconds: 10),
+        ),
+      );
+
+      releaseTimers.add(
         CountdownTimer(
           Duration(milliseconds: decay),
-          const Duration(milliseconds: 50),
+          const Duration(milliseconds: 10),
         ),
       );
     }
   }
 
+  void _handleNoteRelease() {
+    //releasedNoteRecently = true;
+    Future.delayed(const Duration(milliseconds: 100), () {
+      releasedNoteRecently = false;
+    });
+  }
+
   void _handleInput(KeyEvent event) {
+    int index = 0;
     for (int i = 0; i < notes.length; i++) {
       if (event.logicalKey == notes[i].value) {
-        if (event is KeyDownEvent) {
-          _playSound(i);
-        } else if (event is KeyUpEvent) {
-          _stopSound(i);
-        }
+        index = i;
+        break;
       }
+    }
+
+    if (event is KeyDownEvent) {
+      print("play sound: " + index.toString());
+      _playSound(index);
+    } else if (event is KeyUpEvent && !releasedNoteRecently) {
+      _handleNoteRelease();
+      print("fade sound: " + index.toString());
+      _stopSound(index);
     }
   }
 
@@ -109,29 +133,70 @@ class PianoKeyboard extends StatelessWidget {
   }
 
   void _playSound(int index) async {
-    timers[index]?.cancel();
+    if (notesPlaying.contains(index)) {
+      return;
+    }
+
+    //print("play sound: " + index.toString());
+    releaseTimers[index]?.cancel();
+    notesPlaying.add(index);
 
     await players[index].seek(Duration(milliseconds: 0));
-    await players[index].setVolume(volume);
+    if (attack > 0) {
+      await players[index].setVolume(1); //Change back to zero
+    } else {
+      await players[index].setVolume(volume);
+    }
     players[index].play();
+
+    // if (attack > 0) {
+    //   Duration duration = Duration(milliseconds: attack);
+    //   attackTimers[index] =
+    //       CountdownTimer(duration, const Duration(milliseconds: 10))
+    //         ..listen((event) {
+    //           final newVolume = clampDouble(
+    //             lerpDouble(
+    //               volume,
+    //               0,
+    //               event.remaining.inMilliseconds / duration.inMilliseconds,
+    //             )!,
+    //             0,
+    //             volume,
+    //           );
+    //           players[index].setVolume(newVolume);
+    //         }).onDone(() async {
+    //           //await players[index].setVolume(volume);
+    //         });
+    // }
   }
 
   void _stopSound(int index) async {
+    if (!notesPlaying.contains(index)) {
+      return;
+    }
+
+    //print("fade sound: " + index.toString());
+    attackTimers[index]?.cancel();
+    notesPlaying.remove(index);
+
     /// Will fade out over 3 seconds
     Duration duration = Duration(milliseconds: decay);
+    double initialVolume = players[index].volume;
 
     /// Using a [CountdownTimer] to decrement the volume every 50 milliseconds, then stop [AudioPlayer] when done.
-    timers[index] = CountdownTimer(duration, const Duration(milliseconds: 50))
-      ..listen((event) {
-        final newVolume = clampDouble(
-          (event.remaining.inMilliseconds / duration.inMilliseconds) * volume,
-          0,
-          volume,
-        );
-        players[index].setVolume(newVolume);
-      }).onDone(() async {
-        await players[index].pause();
-      });
+    releaseTimers[index] =
+        CountdownTimer(duration, const Duration(milliseconds: 10))
+          ..listen((event) {
+            final newVolume = clampDouble(
+              (event.remaining.inMilliseconds / duration.inMilliseconds) *
+                  initialVolume,
+              0,
+              initialVolume,
+            );
+            players[index].setVolume(newVolume);
+          }).onDone(() async {
+            await players[index].pause();
+          });
   }
 
   @override
