@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Piano',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.purple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
       ),
       home: const MyHomePage(title: 'Virtual Piano'),
     );
@@ -31,7 +31,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   late PianoKeyboard keyboard;
-  KeyboardType _currentInstrument = KeyboardType.piano;
+  Instrument _currentInstrument = Instrument.piano;
   double _currentVolume = 1.0;
   double _currentAttack = 15;
   double _currentRelease = 300;
@@ -49,7 +49,12 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
-    keyboard = PianoKeyboard(keyboardType: _currentInstrument);
+    keyboard = PianoKeyboard(
+      instrument: _currentInstrument,
+      volume: _currentVolume,
+      attack: _currentAttack,
+      release: _currentRelease,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -70,25 +75,25 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
-            DropdownButton<KeyboardType>(
+            DropdownButton<Instrument>(
               focusNode: FocusNode(canRequestFocus: false),
               value: _currentInstrument,
               icon: const Icon(Icons.arrow_downward),
               elevation: 16,
-              style: const TextStyle(color: Colors.deepPurple),
-              underline: Container(height: 2, color: Colors.deepPurpleAccent),
-              onChanged: (KeyboardType? value) {
+              style: TextStyle(color: theme.colorScheme.primary),
+              underline: Container(height: 2, color: theme.colorScheme.primary),
+              onChanged: (Instrument? value) {
                 setState(() {
                   _currentInstrument = value!;
                 });
               },
               items: [
-                DropdownMenuItem<KeyboardType>(
-                  value: KeyboardType.piano,
+                DropdownMenuItem<Instrument>(
+                  value: Instrument.piano,
                   child: Text("Piano"),
                 ),
-                DropdownMenuItem<KeyboardType>(
-                  value: KeyboardType.drums,
+                DropdownMenuItem<Instrument>(
+                  value: Instrument.drums,
                   child: Text("Drums"),
                 ),
               ],
@@ -100,7 +105,6 @@ class _MyHomePageState extends State<MyHomePage> {
               label: _currentVolume.toString(),
               onChanged: (double value) {
                 setState(() {
-                  keyboard.setVolume(value);
                   _currentVolume = value;
                 });
               },
@@ -113,7 +117,6 @@ class _MyHomePageState extends State<MyHomePage> {
               label: _currentAttack.toString(),
               onChanged: (double value) {
                 setState(() {
-                  keyboard.setAttack(value.toInt());
                   _currentAttack = value;
                 });
               },
@@ -126,7 +129,6 @@ class _MyHomePageState extends State<MyHomePage> {
               label: _currentRelease.toString(),
               onChanged: (double value) {
                 setState(() {
-                  keyboard.setRelease(value.toInt());
                   _currentRelease = value;
                 });
               },

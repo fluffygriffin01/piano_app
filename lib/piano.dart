@@ -5,27 +5,21 @@ import 'package:just_audio/just_audio.dart';
 import 'package:quiver/async.dart';
 import 'package:audio_session/audio_session.dart';
 
-enum KeyboardType { piano, drums }
+enum Instrument { piano, drums }
 
 class PianoKeyboard extends StatefulWidget {
-  PianoKeyboard({super.key, required this.keyboardType});
+  const PianoKeyboard({
+    super.key,
+    required this.instrument,
+    required this.volume,
+    required this.attack,
+    required this.release,
+  });
 
-  final keyboardType;
-  var volume = 1.0;
-  var attack = 15;
-  var release = 300;
-
-  void setVolume(double v) {
-    volume = v;
-  }
-
-  void setAttack(int milliseconds) {
-    attack = milliseconds;
-  }
-
-  void setRelease(int milliseconds) {
-    release = milliseconds;
-  }
+  final instrument;
+  final volume;
+  final attack;
+  final release;
 
   @override
   State<PianoKeyboard> createState() => _PianoKeyboardState();
@@ -68,10 +62,36 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   final Map<String, LogicalKeyboardKey> drumsMap = {
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Kick.wav':
         LogicalKeyboardKey.keyZ,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C%233.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Sidestick.wav':
         LogicalKeyboardKey.keyS,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_D3.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Snare.wav':
         LogicalKeyboardKey.keyX,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Rimclick.wav':
+        LogicalKeyboardKey.keyD,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_1.wav':
+        LogicalKeyboardKey.keyC,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Closed_Hat.wav':
+        LogicalKeyboardKey.keyV,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_2.wav':
+        LogicalKeyboardKey.keyG,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Pedal_Hat.wav':
+        LogicalKeyboardKey.keyB,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_3.wav':
+        LogicalKeyboardKey.keyH,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Open_Hat.wav':
+        LogicalKeyboardKey.keyN,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_4.wav':
+        LogicalKeyboardKey.keyJ,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride.wav':
+        LogicalKeyboardKey.keyM,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride Bell.wav':
+        LogicalKeyboardKey.comma,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Crash Left.wav':
+        LogicalKeyboardKey.period,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Crash Right.wav':
+        LogicalKeyboardKey.slash,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride_Splash.wav':
+        LogicalKeyboardKey.shiftRight,
   };
 
   late List<MapEntry<String, LogicalKeyboardKey>> notes;
@@ -85,7 +105,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     _focusNode = FocusNode();
 
     // Set the list of notes to create
-    if (widget.keyboardType == KeyboardType.drums) {
+    if (widget.instrument == Instrument.drums) {
       notes = drumsMap.entries.toList();
     } else {
       notes = pianoMap.entries.toList();
@@ -98,7 +118,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   void didUpdateWidget(PianoKeyboard oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    if (oldWidget.keyboardType != widget.keyboardType) {
+    if (oldWidget.instrument != widget.instrument) {
       for (int i = 0; i < players.length; i++) {
         players[i]?.dispose();
       }
@@ -110,7 +130,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
       _focusNode.dispose();
 
       _focusNode = FocusNode();
-      if (widget.keyboardType == KeyboardType.drums) {
+      if (widget.instrument == Instrument.drums) {
         notes = drumsMap.entries.toList();
       } else {
         notes = pianoMap.entries.toList();
@@ -192,7 +212,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
 
     // Set piano playing state
     notesPlaying.add(index);
-    setState(() => pressedKeys.add(index));
+    _updatePressedState(index, true);
 
     // Load audio player if it hasn't already
     await _loadAudioPlayer(index);
@@ -206,6 +226,13 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
 
     // Play the sound
     players[index]?.play();
+
+    // Handle special drums case
+    if (widget.instrument == Instrument.drums) {
+      if (index == 5 || index == 7 && notesPlaying.contains(9)) {
+        _stopSound(9);
+      }
+    }
 
     // Fade in sound if there's an attack
     if (widget.attack > 0) {
@@ -223,8 +250,6 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
                 widget.volume,
               );
               players[index]?.setVolume(newVolume);
-            }).onDone(() async {
-              //await players[index].setVolume(widget.volume);
             });
     }
   }
@@ -248,7 +273,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
 
     // Sets piano playing state
     notesPlaying.remove(index);
-    setState(() => pressedKeys.remove(index));
+    _updatePressedState(index, false);
 
     // Initialize variables
     Duration duration = Duration(milliseconds: widget.release);
