@@ -16,7 +16,7 @@ class Note {
 class PianoKeyboard extends StatefulWidget {
   PianoKeyboard({super.key});
   var volume = 1.0;
-  var attack = 500;
+  var attack = 15;
   var release = 300;
 
   void setVolume(double v) {
@@ -87,6 +87,8 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     for (var i = 0; i < notes.length; i++) {
       players.add(null);
       attackTimers.add(null);
+
+      _loadAudioPlayer(i);
     }
   }
 
@@ -109,25 +111,31 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     }
   }
 
-  void _playSound(int index) async {
-    // If sounds are not loaded or it's already the playing sound, return
-    if (players.length < index ||
-        players[index] != null ||
-        notesPlaying.contains(index)) {
+  Future<void> _loadAudioPlayer(int index) async {
+    if (players[index] != null) {
       return;
     }
 
-    // Create new audio player
     try {
       players[index] = AudioPlayer();
       await players[index]?.setUrl(notes[index].key);
     } catch (e) {
       print("Error loading audio: $e");
     }
+  }
+
+  void _playSound(int index) async {
+    // If sounds are not loaded or it's already the playing sound, return
+    if (players.length < index || notesPlaying.contains(index)) {
+      return;
+    }
 
     // Set piano playing state
     notesPlaying.add(index);
     setState(() => pressedKeys.add(index));
+
+    // Load audio player if it hasn't already
+    await _loadAudioPlayer(index);
 
     // Set the initial volume
     if (widget.attack <= 0) {
@@ -170,12 +178,12 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
       return;
     }
 
-    // Stops the attack
-    attackTimers[index]?.cancel();
-
     // Get the audio player, then set it to null
     AudioPlayer player = players[index]!;
     players[index] = null;
+
+    // Stops the attack
+    attackTimers[index]?.cancel();
 
     // Sets piano playing state
     notesPlaying.remove(index);
@@ -199,6 +207,9 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
         .onDone(() async {
           await player.stop();
         });
+
+    // Pre initialize the next audio player for future use
+    await _loadAudioPlayer(index);
   }
 
   // Sets the state of a piano key to show if it's pressed

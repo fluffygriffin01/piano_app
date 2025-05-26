@@ -32,7 +32,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final PianoKeyboard keyboard = PianoKeyboard();
   double _currentVolume = 1.0;
-  double _currentAttack = 50;
+  double _currentAttack = 15;
   double _currentRelease = 300;
 
   @override
@@ -66,7 +66,7 @@ class _MyHomePageState extends State<MyHomePage> {
             Slider(
               value: _currentVolume,
               min: 0,
-              max: 1,
+              max: 2,
               label: _currentVolume.toString(),
               onChanged: (double value) {
                 setState(() {
