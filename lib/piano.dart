@@ -5,14 +5,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:quiver/async.dart';
 import 'package:audio_session/audio_session.dart';
 
-class Note {
-  Note({required this.index, required this.string});
-  final int index;
-  final String string;
-  int getIndex() => index;
-  String getString() => string;
-}
-
 enum KeyboardType { piano, drums }
 
 class PianoKeyboard extends StatefulWidget {
@@ -42,7 +34,7 @@ class PianoKeyboard extends StatefulWidget {
 class _PianoKeyboardState extends State<PianoKeyboard> {
   final players = <AudioPlayer?>[];
   final attackTimers = <CountdownTimer?>[];
-  final FocusNode _focusNode = FocusNode();
+  late FocusNode _focusNode = FocusNode();
 
   final Map<String, LogicalKeyboardKey> pianoMap = {
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C3.wav':
@@ -74,7 +66,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   };
 
   final Map<String, LogicalKeyboardKey> drumsMap = {
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C3.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Kick.wav':
         LogicalKeyboardKey.keyZ,
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C%233.wav':
         LogicalKeyboardKey.keyS,
@@ -90,6 +82,8 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   void initState() {
     super.initState();
 
+    _focusNode = FocusNode();
+
     // Set the list of notes to create
     if (widget.keyboardType == KeyboardType.drums) {
       notes = drumsMap.entries.toList();
@@ -103,13 +97,42 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   @override
   void didUpdateWidget(PianoKeyboard oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (oldWidget.keyboardType != widget.keyboardType) {
+      for (int i = 0; i < players.length; i++) {
+        players[i]?.dispose();
+      }
+      players.clear();
+      notes.clear();
+      notesPlaying.clear();
+      pressedKeys.clear();
+      attackTimers.clear();
+      _focusNode.dispose();
+
+      _focusNode = FocusNode();
       if (widget.keyboardType == KeyboardType.drums) {
         notes = drumsMap.entries.toList();
       } else {
         notes = pianoMap.entries.toList();
       }
+
+      _initialize();
     }
+  }
+
+  @override
+  void dispose() {
+    for (int i = 0; i < players.length; i++) {
+      players[i]?.dispose();
+    }
+    players.clear();
+    notes.clear();
+    notesPlaying.clear();
+    pressedKeys.clear();
+    attackTimers.clear();
+    _focusNode.dispose();
+
+    super.dispose();
   }
 
   Future<void> _initialize() async {
@@ -270,15 +293,15 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     List<Widget> pianoKeys = [];
     for (var i = 0; i < notes.length; i++) {
       String keyName = notes[i].key
-          .replaceAll(
-            "https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_",
-            "",
-          )
+          .replaceAll("https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/", "")
+          .replaceAll("piano_", "")
+          .replaceAll("drums_", "")
           .replaceAll("%233", "#")
           .replaceAll(".wav", "");
 
       var key = PianoKey(
-        note: Note(index: i, string: keyName),
+        noteIndex: i,
+        noteName: keyName,
         playSound: _playSound,
         stopSound: _stopSound,
         isPressed: pressedKeys.contains(i),
@@ -288,6 +311,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     }
 
     // Creates the visible piano keyboard
+    FocusScope.of(context).requestFocus(_focusNode);
     return KeyboardListener(
       focusNode: _focusNode,
       autofocus: true,
@@ -306,38 +330,40 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
 class PianoKey extends StatelessWidget {
   const PianoKey({
     super.key,
-    required this.note,
+    required this.noteIndex,
+    required this.noteName,
     required this.playSound,
     required this.stopSound,
     required this.isPressed,
     required this.updatePressedState,
   });
 
-  final Note note;
+  final int noteIndex;
+  final String noteName;
   final Function(int) playSound;
   final Function(int) stopSound;
   final bool isPressed;
   final void Function(int, bool) updatePressedState;
 
   void _handleTapDown(TapDownDetails details) {
-    updatePressedState(note.index, true);
-    playSound(note.index);
+    updatePressedState(noteIndex, true);
+    playSound(noteIndex);
   }
 
   void _handleTapUp(TapUpDetails details) {
-    updatePressedState(note.index, false);
-    stopSound(note.index);
+    updatePressedState(noteIndex, false);
+    stopSound(noteIndex);
   }
 
   void _handleTapCancel() {
-    updatePressedState(note.index, false);
-    stopSound(note.index);
+    updatePressedState(noteIndex, false);
+    stopSound(noteIndex);
   }
 
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
-    bool isSharp = note.getString().contains('#');
+    bool isSharp = noteName.contains('#');
     Color pressedOverlay = isSharp ? Colors.grey[800]! : Colors.grey[300]!;
 
     return SizedBox(
@@ -362,7 +388,7 @@ class PianoKey extends StatelessWidget {
           onTapCancel: _handleTapCancel,
           child: Center(
             child: Text(
-              note.getString(),
+              noteName,
               style: TextStyle(color: isSharp ? Colors.white : Colors.black),
             ),
           ),

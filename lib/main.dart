@@ -42,6 +42,11 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   @override
+  void dispose() {
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     keyboard = PianoKeyboard(keyboardType: _currentInstrument);
@@ -66,13 +71,13 @@ class _MyHomePageState extends State<MyHomePage> {
           mainAxisSize: MainAxisSize.max,
           children: [
             DropdownButton<KeyboardType>(
+              focusNode: FocusNode(canRequestFocus: false),
               value: _currentInstrument,
               icon: const Icon(Icons.arrow_downward),
               elevation: 16,
               style: const TextStyle(color: Colors.deepPurple),
               underline: Container(height: 2, color: Colors.deepPurpleAccent),
               onChanged: (KeyboardType? value) {
-                // This is called when the user selects an item.
                 setState(() {
                   _currentInstrument = value!;
                 });
