@@ -14,7 +14,23 @@ class Note {
 }
 
 class PianoKeyboard extends StatefulWidget {
-  const PianoKeyboard({super.key});
+  PianoKeyboard({super.key});
+  var volume = 1.0;
+  var attack = 500;
+  var release = 300;
+
+  void setVolume(double v) {
+    volume = v;
+  }
+
+  void setAttack(int milliseconds) {
+    attack = milliseconds;
+  }
+
+  void setRelease(int milliseconds) {
+    release = milliseconds;
+  }
+
   @override
   State<PianoKeyboard> createState() => _PianoKeyboardState();
 }
@@ -57,9 +73,6 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   late final List<MapEntry<String, LogicalKeyboardKey>> notes;
   final notesPlaying = <int>{};
   final Set<int> pressedKeys = {};
-  var volume = 1.0;
-  var attack = 500;
-  var decay = 300;
 
   @override
   void initState() {
@@ -86,37 +99,77 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   }
 
   void _handleInput(KeyEvent event) {
+    int? index;
     for (int i = 0; i < notes.length; i++) {
       if (event.logicalKey == notes[i].value) {
-        if (event is KeyDownEvent) {
-          _playSound(i);
-        } else if (event is KeyUpEvent) {
-          _stopSound(i);
-        }
+        index = i;
         break;
+      }
+    }
+
+    if (index != null) {
+      if (event is KeyDownEvent) {
+        _playSound(index);
+      } else if (event is KeyUpEvent) {
+        _stopSound(index);
       }
     }
   }
 
   void _playSound(int index) async {
-    if (notesPlaying.contains(index)) return;
+    if (players.length < index ||
+        attackTimers.length < index ||
+        releaseTimers.length < index ||
+        notesPlaying.contains(index)) {
+      return;
+    }
 
     releaseTimers[index]?.cancel();
     notesPlaying.add(index);
     setState(() => pressedKeys.add(index));
 
     await players[index].seek(Duration.zero);
-    await players[index].setVolume(volume);
+    if (widget.attack > 0) {
+      await players[index].setVolume(0);
+    } else {
+      await players[index].setVolume(widget.volume);
+    }
     players[index].play();
+
+    if (widget.attack > 0) {
+      Duration duration = Duration(milliseconds: widget.attack);
+      attackTimers[index] =
+          CountdownTimer(duration, const Duration(milliseconds: 10))
+            ..listen((event) {
+              final newVolume = clampDouble(
+                lerpDouble(
+                  widget.volume,
+                  0,
+                  event.remaining.inMilliseconds / duration.inMilliseconds,
+                )!,
+                0,
+                widget.volume,
+              );
+              players[index].setVolume(newVolume);
+            }).onDone(() async {
+              //await players[index].setVolume(widget.volume);
+            });
+    }
   }
 
   void _stopSound(int index) async {
-    if (!notesPlaying.contains(index)) return;
+    if (players.length < index ||
+        releaseTimers.length < index ||
+        attackTimers.length < index ||
+        !notesPlaying.contains(index)) {
+      return;
+    }
 
+    attackTimers[index]?.cancel();
     notesPlaying.remove(index);
     setState(() => pressedKeys.remove(index));
 
-    Duration duration = Duration(milliseconds: decay);
+    Duration duration = Duration(milliseconds: widget.release);
     double initialVolume = players[index].volume;
 
     releaseTimers[index] =
