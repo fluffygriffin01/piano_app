@@ -36,9 +36,8 @@ class PianoKeyboard extends StatefulWidget {
 }
 
 class _PianoKeyboardState extends State<PianoKeyboard> {
-  final players = <AudioPlayer>[];
+  final players = <AudioPlayer?>[];
   final attackTimers = <CountdownTimer?>[];
-  final releaseTimers = <CountdownTimer?>[];
   final FocusNode _focusNode = FocusNode();
 
   final Map<String, LogicalKeyboardKey> noteMap = {
@@ -83,21 +82,15 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
 
   Future<void> initialize() async {
     final session = await AudioSession.instance;
-    await session.configure(const AudioSessionConfiguration.speech());
+    await session.configure(const AudioSessionConfiguration.music());
 
     for (var i = 0; i < notes.length; i++) {
-      final player = AudioPlayer();
-      try {
-        await player.setUrl(notes[i].key);
-      } catch (e) {
-        print("Error loading audio: $e");
-      }
-      players.add(player);
+      players.add(null);
       attackTimers.add(null);
-      releaseTimers.add(null);
     }
   }
 
+  // Receives keyboard event to play notes
   void _handleInput(KeyEvent event) {
     int? index;
     for (int i = 0; i < notes.length; i++) {
@@ -117,25 +110,36 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   }
 
   void _playSound(int index) async {
+    // If sounds are not loaded or it's already the playing sound, return
     if (players.length < index ||
-        attackTimers.length < index ||
-        releaseTimers.length < index ||
+        players[index] != null ||
         notesPlaying.contains(index)) {
       return;
     }
 
-    releaseTimers[index]?.cancel();
+    // Create new audio player
+    try {
+      players[index] = AudioPlayer();
+      await players[index]?.setUrl(notes[index].key);
+    } catch (e) {
+      print("Error loading audio: $e");
+    }
+
+    // Set piano playing state
     notesPlaying.add(index);
     setState(() => pressedKeys.add(index));
 
-    await players[index].seek(Duration.zero);
-    if (widget.attack > 0) {
-      await players[index].setVolume(0);
+    // Set the initial volume
+    if (widget.attack <= 0) {
+      await players[index]?.setVolume(widget.volume);
     } else {
-      await players[index].setVolume(widget.volume);
+      await players[index]?.setVolume(0);
     }
-    players[index].play();
 
+    // Play the sound
+    players[index]?.play();
+
+    // Fade in sound if there's an attack
     if (widget.attack > 0) {
       Duration duration = Duration(milliseconds: widget.attack);
       attackTimers[index] =
@@ -150,7 +154,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
                 0,
                 widget.volume,
               );
-              players[index].setVolume(newVolume);
+              players[index]?.setVolume(newVolume);
             }).onDone(() async {
               //await players[index].setVolume(widget.volume);
             });
@@ -158,35 +162,46 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   }
 
   void _stopSound(int index) async {
+    // If sounds are not loaded or playing, return
     if (players.length < index ||
-        releaseTimers.length < index ||
+        players[index] == null ||
         attackTimers.length < index ||
         !notesPlaying.contains(index)) {
       return;
     }
 
+    // Stops the attack
     attackTimers[index]?.cancel();
+
+    // Get the audio player, then set it to null
+    AudioPlayer player = players[index]!;
+    players[index] = null;
+
+    // Sets piano playing state
     notesPlaying.remove(index);
     setState(() => pressedKeys.remove(index));
 
+    // Initialize variables
     Duration duration = Duration(milliseconds: widget.release);
-    double initialVolume = players[index].volume;
+    double initialVolume = player.volume;
 
-    releaseTimers[index] =
-        CountdownTimer(duration, const Duration(milliseconds: 10))
-          ..listen((event) {
-            final newVolume = clampDouble(
-              (event.remaining.inMilliseconds / duration.inMilliseconds) *
-                  initialVolume,
-              0,
-              initialVolume,
-            );
-            players[index].setVolume(newVolume);
-          }).onDone(() async {
-            await players[index].pause();
-          });
+    // Fade the sound out
+    CountdownTimer(duration, const Duration(milliseconds: 10))
+        .listen((event) {
+          final newVolume = clampDouble(
+            (event.remaining.inMilliseconds / duration.inMilliseconds) *
+                initialVolume,
+            0,
+            initialVolume,
+          );
+          player.setVolume(newVolume);
+        })
+        .onDone(() async {
+          await player.stop();
+        });
   }
 
+  // Sets the state of a piano key to show if it's pressed
   void _updatePressedState(int index, bool isPressed) {
     setState(() {
       if (isPressed) {
@@ -201,6 +216,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
 
+    // Creates a list of piano key widgets
     List<Widget> pianoKeys = [];
     for (var i = 0; i < notes.length; i++) {
       String keyName = notes[i].key
@@ -221,6 +237,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
       pianoKeys.add(key);
     }
 
+    // Creates the visible piano keyboard
     return KeyboardListener(
       focusNode: _focusNode,
       autofocus: true,
