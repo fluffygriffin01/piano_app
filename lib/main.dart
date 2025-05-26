@@ -30,7 +30,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final PianoKeyboard keyboard = PianoKeyboard();
+  late PianoKeyboard keyboard;
+  KeyboardType _currentInstrument = KeyboardType.piano;
   double _currentVolume = 1.0;
   double _currentAttack = 15;
   double _currentRelease = 300;
@@ -43,6 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
+    keyboard = PianoKeyboard(keyboardType: _currentInstrument);
 
     return Scaffold(
       appBar: AppBar(
@@ -63,10 +65,33 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
+            DropdownButton<KeyboardType>(
+              value: _currentInstrument,
+              icon: const Icon(Icons.arrow_downward),
+              elevation: 16,
+              style: const TextStyle(color: Colors.deepPurple),
+              underline: Container(height: 2, color: Colors.deepPurpleAccent),
+              onChanged: (KeyboardType? value) {
+                // This is called when the user selects an item.
+                setState(() {
+                  _currentInstrument = value!;
+                });
+              },
+              items: [
+                DropdownMenuItem<KeyboardType>(
+                  value: KeyboardType.piano,
+                  child: Text("Piano"),
+                ),
+                DropdownMenuItem<KeyboardType>(
+                  value: KeyboardType.drums,
+                  child: Text("Drums"),
+                ),
+              ],
+            ),
             Slider(
               value: _currentVolume,
               min: 0,
-              max: 2,
+              max: 1,
               label: _currentVolume.toString(),
               onChanged: (double value) {
                 setState(() {

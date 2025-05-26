@@ -13,8 +13,12 @@ class Note {
   String getString() => string;
 }
 
+enum KeyboardType { piano, drums }
+
 class PianoKeyboard extends StatefulWidget {
-  PianoKeyboard({super.key});
+  PianoKeyboard({super.key, required this.keyboardType});
+
+  final keyboardType;
   var volume = 1.0;
   var attack = 15;
   var release = 300;
@@ -40,7 +44,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
   final attackTimers = <CountdownTimer?>[];
   final FocusNode _focusNode = FocusNode();
 
-  final Map<String, LogicalKeyboardKey> noteMap = {
+  final Map<String, LogicalKeyboardKey> pianoMap = {
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C3.wav':
         LogicalKeyboardKey.keyZ,
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C%233.wav':
@@ -69,25 +73,54 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
         LogicalKeyboardKey.comma,
   };
 
-  late final List<MapEntry<String, LogicalKeyboardKey>> notes;
+  final Map<String, LogicalKeyboardKey> drumsMap = {
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C3.wav':
+        LogicalKeyboardKey.keyZ,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C%233.wav':
+        LogicalKeyboardKey.keyS,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_D3.wav':
+        LogicalKeyboardKey.keyX,
+  };
+
+  late List<MapEntry<String, LogicalKeyboardKey>> notes;
   final notesPlaying = <int>{};
   final Set<int> pressedKeys = {};
 
   @override
   void initState() {
     super.initState();
-    notes = noteMap.entries.toList();
-    initialize();
+
+    // Set the list of notes to create
+    if (widget.keyboardType == KeyboardType.drums) {
+      notes = drumsMap.entries.toList();
+    } else {
+      notes = pianoMap.entries.toList();
+    }
+
+    _initialize();
   }
 
-  Future<void> initialize() async {
+  @override
+  void didUpdateWidget(PianoKeyboard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.keyboardType != widget.keyboardType) {
+      if (widget.keyboardType == KeyboardType.drums) {
+        notes = drumsMap.entries.toList();
+      } else {
+        notes = pianoMap.entries.toList();
+      }
+    }
+  }
+
+  Future<void> _initialize() async {
+    // Set the audio session to handle music
     final session = await AudioSession.instance;
     await session.configure(const AudioSessionConfiguration.music());
 
+    // Initialize all of the audio players and timers
     for (var i = 0; i < notes.length; i++) {
       players.add(null);
       attackTimers.add(null);
-
       _loadAudioPlayer(i);
     }
   }
@@ -111,8 +144,11 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     }
   }
 
+  // Loads an audio player onto the index
   Future<void> _loadAudioPlayer(int index) async {
-    if (players[index] != null) {
+    if (players.length < index ||
+        players[index] != null ||
+        notes.length < index) {
       return;
     }
 
@@ -124,6 +160,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     }
   }
 
+  // Plays a sound given an index
   void _playSound(int index) async {
     // If sounds are not loaded or it's already the playing sound, return
     if (players.length < index || notesPlaying.contains(index)) {
@@ -169,6 +206,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     }
   }
 
+  // Stops a sound given an index
   void _stopSound(int index) async {
     // If sounds are not loaded or playing, return
     if (players.length < index ||
@@ -223,6 +261,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     });
   }
 
+  // Builds the keyboard widgets
   @override
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
