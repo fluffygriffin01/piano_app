@@ -1,7 +1,11 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/services.dart';
 import 'package:quiver/async.dart';
+import 'package:audio_session/audio_session.dart';
+import 'dart:math';
 
 class Note {
   Note({required this.index, required this.string});
@@ -37,37 +41,58 @@ class PianoKeyboard extends StatelessWidget {
   final players = <AudioPlayer>[];
   final timers = <CountdownTimer?>[];
   final notes = {
-    'sounds/piano_C3.wav': LogicalKeyboardKey.keyZ,
-    'sounds/piano_C#3.wav': LogicalKeyboardKey.keyS,
-    'sounds/piano_D3.wav': LogicalKeyboardKey.keyX,
-    'sounds/piano_D#3.wav': LogicalKeyboardKey.keyD,
-    'sounds/piano_E3.wav': LogicalKeyboardKey.keyC,
-    'sounds/piano_F3.wav': LogicalKeyboardKey.keyV,
-    'sounds/piano_F#3.wav': LogicalKeyboardKey.keyG,
-    'sounds/piano_G3.wav': LogicalKeyboardKey.keyB,
-    'sounds/piano_G#3.wav': LogicalKeyboardKey.keyH,
-    'sounds/piano_A3.wav': LogicalKeyboardKey.keyN,
-    'sounds/piano_A#3.wav': LogicalKeyboardKey.keyJ,
-    'sounds/piano_B3.wav': LogicalKeyboardKey.keyM,
-    'sounds/piano_C4.wav': LogicalKeyboardKey.comma,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C3.wav':
+        LogicalKeyboardKey.keyZ,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C%233.wav':
+        LogicalKeyboardKey.keyS,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_D3.wav':
+        LogicalKeyboardKey.keyX,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_D%233.wav':
+        LogicalKeyboardKey.keyD,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_E3.wav':
+        LogicalKeyboardKey.keyC,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_F3.wav':
+        LogicalKeyboardKey.keyV,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_F%233.wav':
+        LogicalKeyboardKey.keyG,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_G3.wav':
+        LogicalKeyboardKey.keyB,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_G%233.wav':
+        LogicalKeyboardKey.keyH,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_A3.wav':
+        LogicalKeyboardKey.keyN,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_A%233.wav':
+        LogicalKeyboardKey.keyJ,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_B3.wav':
+        LogicalKeyboardKey.keyM,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C4.wav':
+        LogicalKeyboardKey.comma,
   }.entries.toList();
-  var volume = 1;
-  var decay = 200;
+  var volume = 1.0;
+  var decay = 600;
 
-  initialize() {
+  initialize() async {
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.speech());
+
     for (int i = 0; i < notes.length; i++) {
       players.add(AudioPlayer());
+      try {
+        players[i].setUrl(notes[i].key);
+      } on PlayerException catch (e) {
+        print("Error loading audio source: $e");
+      }
+
       timers.add(
         CountdownTimer(
           Duration(milliseconds: decay),
           const Duration(milliseconds: 50),
         ),
       );
-      players[i].setSource(AssetSource(notes[i].key));
     }
   }
 
-  void handleInput(KeyEvent event) {
+  void _handleInput(KeyEvent event) {
     for (int i = 0; i < notes.length; i++) {
       if (event.logicalKey == notes[i].value) {
         if (event is KeyDownEvent) {
@@ -79,58 +104,34 @@ class PianoKeyboard extends StatelessWidget {
     }
   }
 
-  void _setVolume(double volume) {
-    for (AudioPlayer player in players) {
-      player.setVolume(volume);
-    }
+  void _setVolume(double v) {
+    volume = v;
   }
 
   void _playSound(int index) async {
     timers[index]?.cancel();
 
-    if (players[index].source == null) {
-      await players[index].setSource(AssetSource(notes[index].key));
-    }
     await players[index].seek(Duration(milliseconds: 0));
-    await players[index].setVolume(1);
-    //players[index].resume();
-    Future.delayed(Duration(milliseconds: 100), () {
-      // print("setVolume: " + players[index].volume.toString());
-      // players[index].getCurrentPosition().then(
-      //   (value) => (print(value?.inMilliseconds.toString())),
-      // );
-      print("Gonna resume");
-      if (players[index].volume >= 1) {
-        players[index].resume();
-      }
-    });
+    await players[index].setVolume(volume);
+    players[index].play();
   }
 
   void _stopSound(int index) async {
     /// Will fade out over 3 seconds
-    double startVolume = players[index].volume;
     Duration duration = Duration(milliseconds: decay);
 
     /// Using a [CountdownTimer] to decrement the volume every 50 milliseconds, then stop [AudioPlayer] when done.
     timers[index] = CountdownTimer(duration, const Duration(milliseconds: 50))
       ..listen((event) {
-        final percent =
-            event.remaining.inMilliseconds / duration.inMilliseconds;
-        players[index].setVolume(percent * startVolume);
+        final newVolume = clampDouble(
+          (event.remaining.inMilliseconds / duration.inMilliseconds) * volume,
+          0,
+          volume,
+        );
+        players[index].setVolume(newVolume);
       }).onDone(() async {
         await players[index].pause();
-        print("Finished timer");
-        // if (players[index].state == PlayerState.paused) {
-        //   Future.delayed(Duration(milliseconds: 10), () {
-        //     players[index].setVolume(1);
-        //     print("setVolume");
-        //   });
-        // }
       });
-
-    Future.delayed(duration, () {
-      timers[index] = null;
-    });
   }
 
   @override
@@ -140,7 +141,11 @@ class PianoKeyboard extends StatelessWidget {
 
     List<Widget> pianoKeys = [];
     for (var i = 0; i < notes.length; i++) {
-      String keyName = notes[i].key.replaceAll("sounds/piano_", "");
+      String keyName = notes[i].key.replaceAll(
+        "https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_",
+        "",
+      );
+      keyName = keyName.replaceAll("%233", "#");
       keyName = keyName.replaceAll(".wav", "");
 
       var key = PianoKey(
@@ -155,7 +160,7 @@ class PianoKeyboard extends StatelessWidget {
       focusNode: _focusNode,
       autofocus: true,
       onKeyEvent: (event) {
-        handleInput(event);
+        _handleInput(event);
       },
       child: DecoratedBox(
         decoration: BoxDecoration(color: theme.colorScheme.primary),
