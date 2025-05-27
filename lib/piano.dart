@@ -57,6 +57,30 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
         LogicalKeyboardKey.keyM,
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C4.wav':
         LogicalKeyboardKey.comma,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C%234.wav':
+        LogicalKeyboardKey.keyL,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_D4.wav':
+        LogicalKeyboardKey.period,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_D%234.wav':
+        LogicalKeyboardKey.semicolon,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_E4.wav':
+        LogicalKeyboardKey.slash,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_F4.wav':
+        LogicalKeyboardKey.keyQ,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_F%234.wav':
+        LogicalKeyboardKey.digit2,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_G4.wav':
+        LogicalKeyboardKey.keyW,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_G%234.wav':
+        LogicalKeyboardKey.digit3,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_A4.wav':
+        LogicalKeyboardKey.keyE,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_A%234.wav':
+        LogicalKeyboardKey.digit4,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_B4.wav':
+        LogicalKeyboardKey.keyR,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/piano_C5.wav':
+        LogicalKeyboardKey.keyT,
   };
 
   final Map<String, LogicalKeyboardKey> drumsMap = {
@@ -227,9 +251,9 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     // Play the sound
     players[index]?.play();
 
-    // Handle special drums case
+    // Handle special drum case
     if (widget.instrument == Instrument.drums) {
-      if (index == 5 || index == 7 && notesPlaying.contains(9)) {
+      if ((index == 5 || index == 7) && notesPlaying.contains(9)) {
         _stopSound(9);
       }
     }
@@ -321,7 +345,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
           .replaceAll("https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/", "")
           .replaceAll("piano_", "")
           .replaceAll("drums_", "")
-          .replaceAll("%233", "#")
+          .replaceAll("%23", "#")
           .replaceAll("_", " ")
           .replaceAll(".wav", "");
 
