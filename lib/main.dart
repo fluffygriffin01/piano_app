@@ -1,29 +1,56 @@
 import 'package:flutter/material.dart';
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'piano.dart';
 
+// Runs the app
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+// A change notifier class that will notify the app
+// when the theme has changed
+class AppTheme with ChangeNotifier {
+  ThemeData _currentTheme = ThemeData(
+    colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+  );
+  ThemeData get currentTheme => _currentTheme;
+
+  void setThemeColor(Color c) {
+    _currentTheme = ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: c));
+    notifyListeners();
+  }
+}
+
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  final AppTheme appTheme = AppTheme();
 
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Piano',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
-      ),
-      home: const MyHomePage(title: 'Virtual Piano'),
+    return ListenableBuilder(
+      listenable: appTheme,
+      builder: (BuildContext context, Widget? child) {
+        return MaterialApp(
+          title: 'Piano',
+          theme: appTheme._currentTheme,
+          home: MyHomePage(title: 'Virtual Piano', appTheme: appTheme),
+        );
+      },
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({super.key, required this.title, required this.appTheme});
   final String title;
+  final AppTheme appTheme;
 
   @override
   State<MyHomePage> createState() => _MyHomePageState();
@@ -35,6 +62,7 @@ class _MyHomePageState extends State<MyHomePage> {
   double _currentVolume = 1.0;
   double _currentAttack = 15;
   double _currentRelease = 300;
+  Color appThemeColor = Colors.black;
 
   @override
   void initState() {
@@ -132,6 +160,39 @@ class _MyHomePageState extends State<MyHomePage> {
                   _currentRelease = value;
                 });
               },
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: Padding(
+                padding: const EdgeInsets.all(6),
+                child: Card(
+                  elevation: 2,
+                  child: ColorPicker(
+                    color: appThemeColor,
+                    onColorChanged: (Color color) => setState(() {
+                      widget.appTheme.setThemeColor(color);
+                      appThemeColor = color;
+                    }),
+                    pickersEnabled: const <ColorPickerType, bool>{
+                      ColorPickerType.both: false,
+                      ColorPickerType.primary: true,
+                      ColorPickerType.accent: false,
+                      ColorPickerType.bw: false,
+                      ColorPickerType.custom: false,
+                      ColorPickerType.customSecondary: false,
+                      ColorPickerType.wheel: false,
+                    },
+                    enableShadesSelection: false,
+                    width: 44,
+                    height: 44,
+                    borderRadius: 22,
+                    heading: Text(
+                      'Select color',
+                      style: Theme.of(context).textTheme.headlineSmall,
+                    ),
+                  ),
+                ),
+              ),
             ),
             DecoratedBox(
               decoration: BoxDecoration(
