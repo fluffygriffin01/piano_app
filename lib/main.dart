@@ -84,130 +84,155 @@ class _MyHomePageState extends State<MyHomePage> {
       release: _currentRelease,
     );
 
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primaryContainer,
-              theme.colorScheme.primary,
-            ],
-          ),
+    return SafeArea(
+      child: Scaffold(
+        appBar: AppBar(
+          backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+          title: Text(widget.title),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: [
-            DropdownButton<Instrument>(
-              focusNode: FocusNode(canRequestFocus: false),
-              value: _currentInstrument,
-              icon: const Icon(Icons.arrow_downward),
-              elevation: 16,
-              style: TextStyle(color: theme.colorScheme.primary),
-              underline: Container(height: 2, color: theme.colorScheme.primary),
-              onChanged: (Instrument? value) {
-                setState(() {
-                  _currentInstrument = value!;
-                });
-              },
-              items: [
-                DropdownMenuItem<Instrument>(
-                  value: Instrument.piano,
-                  child: Text("Piano"),
-                ),
-                DropdownMenuItem<Instrument>(
-                  value: Instrument.drums,
-                  child: Text("Drums"),
-                ),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                theme.colorScheme.primaryContainer,
+                theme.colorScheme.primary,
               ],
             ),
-            Slider(
-              value: _currentVolume,
-              min: 0,
-              max: 1,
-              label: _currentVolume.toString(),
-              onChanged: (double value) {
-                setState(() {
-                  _currentVolume = value;
-                });
-              },
-            ),
-            Slider(
-              value: _currentAttack,
-              min: 0,
-              max: 1000,
-              divisions: 200,
-              label: _currentAttack.toString(),
-              onChanged: (double value) {
-                setState(() {
-                  _currentAttack = value;
-                });
-              },
-            ),
-            Slider(
-              value: _currentRelease,
-              min: 0,
-              max: 1000,
-              divisions: 200,
-              label: _currentRelease.toString(),
-              onChanged: (double value) {
-                setState(() {
-                  _currentRelease = value;
-                });
-              },
-            ),
-            SizedBox(
-              width: double.infinity,
-              child: Padding(
-                padding: const EdgeInsets.all(6),
-                child: Card(
-                  elevation: 2,
-                  child: ColorPicker(
-                    color: appThemeColor,
-                    onColorChanged: (Color color) => setState(() {
-                      widget.appTheme.setThemeColor(color);
-                      appThemeColor = color;
-                    }),
-                    pickersEnabled: const <ColorPickerType, bool>{
-                      ColorPickerType.both: false,
-                      ColorPickerType.primary: true,
-                      ColorPickerType.accent: false,
-                      ColorPickerType.bw: false,
-                      ColorPickerType.custom: false,
-                      ColorPickerType.customSecondary: false,
-                      ColorPickerType.wheel: false,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  DropdownButton<Instrument>(
+                    focusNode: FocusNode(canRequestFocus: false),
+                    value: _currentInstrument,
+                    icon: const Icon(Icons.arrow_downward),
+                    elevation: 16,
+                    style: TextStyle(color: theme.colorScheme.primary),
+                    underline: Container(
+                      height: 2,
+                      color: theme.colorScheme.primary,
+                    ),
+                    onChanged: (Instrument? value) {
+                      setState(() {
+                        _currentInstrument = value!;
+                      });
                     },
-                    enableShadesSelection: false,
-                    width: 44,
-                    height: 44,
-                    borderRadius: 22,
-                    heading: Text(
-                      'Select color',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                    items: [
+                      DropdownMenuItem<Instrument>(
+                        value: Instrument.piano,
+                        child: Text("Piano"),
+                      ),
+                      DropdownMenuItem<Instrument>(
+                        value: Instrument.drums,
+                        child: Text("Drums"),
+                      ),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Slider(
+                        value: _currentVolume,
+                        min: 0,
+                        max: 1,
+                        label: _currentVolume.round().toString(),
+                        onChanged: (double value) {
+                          setState(() {
+                            _currentVolume = value;
+                          });
+                        },
+                      ),
+                      Text('Volume'),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Slider(
+                        value: _currentAttack,
+                        min: 0,
+                        max: 1000,
+                        divisions: 100,
+                        label: _currentAttack.toString(),
+                        onChanged: (double value) {
+                          setState(() {
+                            _currentAttack = value;
+                          });
+                        },
+                      ),
+                      Text('Attack (ms)'),
+                    ],
+                  ),
+                  Column(
+                    children: [
+                      Slider(
+                        value: _currentRelease,
+                        min: 0,
+                        max: 2000,
+                        divisions: 200,
+                        label: _currentRelease.toString(),
+                        onChanged: (double value) {
+                          setState(() {
+                            _currentRelease = value;
+                          });
+                        },
+                      ),
+                      Text('Release (ms)'),
+                    ],
+                  ),
+                ],
+              ),
+              SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: const EdgeInsets.all(6),
+                  child: Card(
+                    elevation: 2,
+                    child: ColorPicker(
+                      color: appThemeColor,
+                      onColorChanged: (Color color) => setState(() {
+                        widget.appTheme.setThemeColor(color);
+                        appThemeColor = color;
+                      }),
+                      pickersEnabled: const <ColorPickerType, bool>{
+                        ColorPickerType.both: false,
+                        ColorPickerType.primary: true,
+                        ColorPickerType.accent: false,
+                        ColorPickerType.bw: false,
+                        ColorPickerType.custom: false,
+                        ColorPickerType.customSecondary: false,
+                        ColorPickerType.wheel: false,
+                      },
+                      enableShadesSelection: false,
+                      width: 44,
+                      height: 44,
+                      borderRadius: 22,
+                      heading: Text(
+                        'Select color',
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: <Color>[
-                    theme.colorScheme.primaryContainer,
-                    theme.colorScheme.inversePrimary,
-                  ],
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: <Color>[
+                      theme.colorScheme.primaryContainer,
+                      theme.colorScheme.inversePrimary,
+                    ],
+                  ),
                 ),
+                child: keyboard,
               ),
-              child: keyboard,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
