@@ -106,82 +106,91 @@ class _MyHomePageState extends State<MyHomePage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  DropdownButton<Instrument>(
-                    focusNode: FocusNode(canRequestFocus: false),
-                    value: _currentInstrument,
-                    icon: const Icon(Icons.arrow_downward),
-                    elevation: 16,
-                    style: TextStyle(color: theme.colorScheme.primary),
-                    underline: Container(
-                      height: 2,
-                      color: theme.colorScheme.primary,
+                  Flexible(
+                    child: DropdownButton<Instrument>(
+                      focusNode: FocusNode(canRequestFocus: false),
+                      value: _currentInstrument,
+                      icon: const Icon(Icons.arrow_downward),
+                      elevation: 16,
+                      style: TextStyle(color: theme.colorScheme.primary),
+                      underline: Container(
+                        height: 2,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onChanged: (Instrument? value) {
+                        setState(() {
+                          _currentInstrument = value!;
+                        });
+                      },
+                      items: [
+                        DropdownMenuItem<Instrument>(
+                          value: Instrument.piano,
+                          child: Text("Piano"),
+                        ),
+                        DropdownMenuItem<Instrument>(
+                          value: Instrument.drums,
+                          child: Text("Drums"),
+                        ),
+                      ],
                     ),
-                    onChanged: (Instrument? value) {
-                      setState(() {
-                        _currentInstrument = value!;
-                      });
-                    },
-                    items: [
-                      DropdownMenuItem<Instrument>(
-                        value: Instrument.piano,
-                        child: Text("Piano"),
-                      ),
-                      DropdownMenuItem<Instrument>(
-                        value: Instrument.drums,
-                        child: Text("Drums"),
-                      ),
-                    ],
                   ),
-                  Column(
-                    children: [
-                      Slider(
-                        value: _currentVolume,
-                        min: 0,
-                        max: 1,
-                        label: _currentVolume.round().toString(),
-                        onChanged: (double value) {
-                          setState(() {
-                            _currentVolume = value;
-                          });
-                        },
-                      ),
-                      Text('Volume'),
-                    ],
+                  Flexible(
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: _currentVolume,
+                          min: 0,
+                          max: 1,
+                          label: _currentVolume.round().toString(),
+                          onChanged: (double value) {
+                            setState(() {
+                              _currentVolume = value;
+                            });
+                          },
+                        ),
+                        Text('Volume'),
+                      ],
+                    ),
                   ),
-                  Column(
-                    children: [
-                      Slider(
-                        value: _currentAttack,
-                        min: 0,
-                        max: 1000,
-                        divisions: 100,
-                        label: _currentAttack.toString(),
-                        onChanged: (double value) {
-                          setState(() {
-                            _currentAttack = value;
-                          });
-                        },
-                      ),
-                      Text('Attack (ms)'),
-                    ],
+                  Flexible(
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: _currentAttack,
+                          min: 0,
+                          max: 1000,
+                          divisions: 100,
+                          label: _currentAttack.toString(),
+                          onChanged: (double value) {
+                            setState(() {
+                              _currentAttack = value;
+                            });
+                          },
+                        ),
+                        Text('Attack (ms)'),
+                      ],
+                    ),
                   ),
-                  Column(
-                    children: [
-                      Slider(
-                        value: _currentRelease,
-                        min: 0,
-                        max: 2000,
-                        divisions: 200,
-                        label: _currentRelease.toString(),
-                        onChanged: (double value) {
-                          setState(() {
-                            _currentRelease = value;
-                          });
-                        },
-                      ),
-                      Text('Release (ms)'),
-                    ],
+                  Flexible(
+                    child: Column(
+                      children: [
+                        Slider(
+                          value: _currentRelease,
+                          min: 0,
+                          max: 2000,
+                          divisions: 200,
+                          label: _currentRelease.toString(),
+                          onChanged: (double value) {
+                            setState(() {
+                              _currentRelease = value;
+                            });
+                          },
+                        ),
+                        Text('Release (ms)'),
+                      ],
+                    ),
                   ),
                 ],
               ),
@@ -211,7 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       height: 44,
                       borderRadius: 22,
                       heading: Text(
-                        'Select color',
+                        'Select A Theme',
                         style: Theme.of(context).textTheme.headlineSmall,
                       ),
                     ),

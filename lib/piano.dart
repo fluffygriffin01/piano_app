@@ -63,35 +63,35 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Kick.wav':
         LogicalKeyboardKey.keyZ,
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Sidestick.wav':
-        LogicalKeyboardKey.keyS,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Snare.wav':
         LogicalKeyboardKey.keyX,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Rimclick.wav':
-        LogicalKeyboardKey.keyD,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_1.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Snare.wav':
         LogicalKeyboardKey.keyC,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Closed_Hat.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Rimclick.wav':
         LogicalKeyboardKey.keyV,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_2.wav':
-        LogicalKeyboardKey.keyG,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Pedal_Hat.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_1.wav':
         LogicalKeyboardKey.keyB,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_3.wav':
-        LogicalKeyboardKey.keyH,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Open_Hat.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Closed_Hat.wav':
         LogicalKeyboardKey.keyN,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_4.wav':
-        LogicalKeyboardKey.keyJ,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_2.wav':
         LogicalKeyboardKey.keyM,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride Bell.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Pedal_Hat.wav':
         LogicalKeyboardKey.comma,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Crash Left.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_3.wav':
         LogicalKeyboardKey.period,
-    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Crash Right.wav':
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Open_Hat.wav':
         LogicalKeyboardKey.slash,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Tom_4.wav':
+        LogicalKeyboardKey.keyA,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride.wav':
+        LogicalKeyboardKey.keyS,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride Bell.wav':
+        LogicalKeyboardKey.keyD,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Crash Left.wav':
+        LogicalKeyboardKey.keyF,
+    'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Crash Right.wav':
+        LogicalKeyboardKey.keyG,
     'https://file.garden/aDOvpp9BNFHMB4ah/PianoSounds/drums_Ride_Splash.wav':
-        LogicalKeyboardKey.shiftRight,
+        LogicalKeyboardKey.keyH,
   };
 
   late List<MapEntry<String, LogicalKeyboardKey>> notes;
@@ -322,6 +322,7 @@ class _PianoKeyboardState extends State<PianoKeyboard> {
           .replaceAll("piano_", "")
           .replaceAll("drums_", "")
           .replaceAll("%233", "#")
+          .replaceAll("_", " ")
           .replaceAll(".wav", "");
 
       var key = PianoKey(
@@ -391,30 +392,38 @@ class PianoKey extends StatelessWidget {
     bool isSharp = noteName.contains('#');
     Color pressedOverlay = isSharp ? Colors.grey[800]! : Colors.grey[300]!;
 
-    return SizedBox(
-      width: isSharp ? 40 : 60,
-      height: 200,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[
-              isPressed ? pressedOverlay : theme.colorScheme.inversePrimary,
-              isSharp ? Colors.black : Colors.white,
-            ],
+    return Flexible(
+      child: SizedBox(
+        width: isSharp ? 40 : 60,
+        height: 200,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                isPressed ? pressedOverlay : theme.colorScheme.inversePrimary,
+                isSharp ? Colors.black : Colors.white,
+              ],
+            ),
+            border: Border.all(width: 4),
+            borderRadius: BorderRadius.circular(4),
           ),
-          border: Border.all(width: 4),
-          borderRadius: BorderRadius.circular(4),
-        ),
-        child: InkWell(
-          onTapDown: _handleTapDown,
-          onTapUp: _handleTapUp,
-          onTapCancel: _handleTapCancel,
-          child: Center(
-            child: Text(
-              noteName,
-              style: TextStyle(color: isSharp ? Colors.white : Colors.black),
+          child: InkWell(
+            onTapDown: _handleTapDown,
+            onTapUp: _handleTapUp,
+            onTapCancel: _handleTapCancel,
+            child: Center(
+              child: Padding(
+                padding: EdgeInsets.all(5.0),
+                child: Text(
+                  noteName,
+                  style: TextStyle(
+                    color: isSharp ? Colors.white : Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
             ),
           ),
         ),
